@@ -48,18 +48,27 @@ def consume_events():
     pubsub.subscribe("status_updates")
     print("✓ Consumidor escuchando eventos en canal 'status_updates'")
 
+    # Mapeo de estados a lenguaje natural
+    estados_traducidos = {
+        "CREATED": "📦 Paquete creado",
+        "IN_TRANSIT": "🚚 En tránsito",
+        "OUT_FOR_DELIVERY": "📍 Listo para entregar",
+        "DELIVERED": "✅ Entregado",
+        "EXCEPTION": "⚠️ Problema detectado"
+    }
+
     for message in pubsub.listen():
         if message["type"] == "message":
             try:
                 event_data = json.loads(message["data"])
+                status_traducido = estados_traducidos.get(event_data['status'], event_data['status'])
                 print(f"✓ Evento recibido: {event_data['tracking_code']} - {event_data['status']}")
 
                 db = next(get_db())
                 try:
                     notification_message = (
                         f"Paquete {event_data['tracking_code']} "
-                        f"está en estado '{event_data['status']}' "
-                        f"en {event_data['location']}"
+                        f"está {status_traducido}"
                     )
                     notification = Notification(
                         tracking_code=event_data["tracking_code"],

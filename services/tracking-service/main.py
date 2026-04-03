@@ -120,7 +120,7 @@ async def get_tracking(tracking_code: str, db: Session = Depends(get_db)):
                     "status": event.status,
                     "location": event.location,
                     "note": event.note,
-                    "recorded_at": event.recorded_at.isoformat()
+                    "at": event.recorded_at.isoformat()
                 }
                 for event in events
             ],

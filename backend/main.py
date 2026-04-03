@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -286,9 +286,188 @@ def getTracking(tracking_code: str):
         db.close()
 
 
-@app.get("/health")
-def health():
-    return {"status": "up"}
+@app.get("/", response_class=HTMLResponse)
+def serve_ui():
+    """Interfaz web del backend con estilos centrados y botones con degradado."""
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Tracking de Paquetes - Backend</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: sans-serif;
+                background-color: #f9f9f9;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                padding-top: 20px;
+            }
+
+            .app-container {
+                max-width: 720px;
+                width: 100%;
+                padding: 16px;
+                background-color: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            h1 {
+                color: #333;
+                margin-bottom: 8px;
+            }
+
+            h2 {
+                color: #444;
+                margin-top: 24px;
+                margin-bottom: 12px;
+                font-size: 18px;
+            }
+
+            p {
+                color: #555;
+                margin-bottom: 8px;
+                line-height: 1.5;
+            }
+
+            hr {
+                border: none;
+                border-top: 1px solid #e0e0e0;
+                margin: 20px 0;
+            }
+
+            label {
+                display: block;
+                margin-bottom: 6px;
+                color: #333;
+                font-weight: 500;
+            }
+
+            input, select {
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+                margin-bottom: 12px;
+            }
+
+            input:focus, select:focus {
+                outline: none;
+                border-color: #9c27b0;
+                box-shadow: 0 0 4px rgba(156, 39, 176, 0.2);
+            }
+
+            .gradient-button {
+                background: linear-gradient(135deg, #9c27b0 0%, #00bcd4 100%);
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                margin: 8px 4px 8px 0;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+            }
+
+            .gradient-button:hover {
+                transform: translateY(-3px) scale(1.05);
+                box-shadow: 0 6px 20px rgba(0, 188, 212, 0.4);
+            }
+
+            .gradient-button:active {
+                transform: translateY(-1px) scale(1.02);
+                box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+            }
+
+            .info-box {
+                background-color: #f0f4ff;
+                border-left: 4px solid #9c27b0;
+                padding: 12px;
+                margin-bottom: 12px;
+                border-radius: 4px;
+            }
+
+            .info-box strong {
+                color: #9c27b0;
+            }
+
+            pre {
+                background-color: #f4f4f4;
+                padding: 12px;
+                border-radius: 4px;
+                overflow-x: auto;
+                font-size: 12px;
+                margin-bottom: 12px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="app-container">
+            <h1>Tracking de Paquetes - Backend</h1>
+            <p style="color: #555">
+                API Gateway: http://localhost:8080
+            </p>
+
+            <div class="info-box">
+                <strong>📊 Endpoints disponibles:</strong>
+                <ul style="margin-top: 8px; margin-left: 20px;">
+                    <li><code>POST /createUser</code> - Crear usuario</li>
+                    <li><code>POST /createPackage</code> - Crear paquete</li>
+                    <li><code>POST /updateStatus</code> - Actualizar estado</li>
+                    <li><code>GET /getTracking/{code}</code> - Consultar tracking</li>
+                    <li><code>GET /getUsers</code> - Listar usuarios</li>
+                    <li><code>GET /getAllPackages</code> - Listar paquetes</li>
+                    <li><code>GET /metrics</code> - Métricas del sistema</li>
+                    <li><code>GET /health</code> - Estado del servicio</li>
+                </ul>
+            </div>
+
+            <hr />
+
+            <h2>📋 Documentación Interactiva</h2>
+            <p>Prueba los endpoints en:</p>
+            <a href="/docs" style="display: inline-block; margin-bottom: 12px;">
+                <button class="gradient-button" type="button">Ir a Swagger UI</button>
+            </a>
+
+            <hr />
+
+            <h2>🔗 Enlaces Útiles</h2>
+            <p>Frontend: <a href="http://localhost:5173" target="_blank">http://localhost:5173</a></p>
+            <p>Métricas: <a href="/metrics" target="_blank">http://localhost:8080/metrics</a></p>
+            <p>Health: <a href="/health" target="_blank">http://localhost:8080/health</a></p>
+
+            <hr />
+
+            <h2>✨ Características</h2>
+            <div class="info-box">
+                <ul style="margin-left: 20px;">
+                    <li>Interfaz centrada y responsive</li>
+                    <li>Botones con gradiente morado a celeste</li>
+                    <li>Animaciones suaves en hover</li>
+                    <li>API REST completa</li>
+                    <li>Arquitectura de microservicios</li>
+                </ul>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
+
+
 
 
 @app.get("/metrics")
