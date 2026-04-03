@@ -32,7 +32,7 @@ const infoExtra = computed(() => {
 async function crearUsuarioMalHecho() {
   data1.value = "guardando...";
   try {
-    const res = await fetch("http://localhost:8000/createUser", { //----> acomplamiento URL fija
+    const res = await fetch("http://localhost:8080/createUser", { //----> API Gateway en puerto 8080
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -65,7 +65,7 @@ async function crearPaqueteCopiaFetch() {
     uid = window.__lastUserIdForPackages;
   }
   try {
-    const res = await fetch("http://localhost:8000/createPackage", {
+    const res = await fetch("http://localhost:8080/createPackage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -93,7 +93,7 @@ async function crearPaqueteCopiaFetch() {
 async function actualizarEstadoOtraVezFetchIgual() {
   info.value = "";
   try {
-    const res = await fetch("http://localhost:8000/updateStatus", {
+    const res = await fetch("http://localhost:8080/updateStatus", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -116,7 +116,7 @@ async function actualizarEstadoOtraVezFetchIgual() {
 async function buscarTracking() {
   resultadoTracking.value = null;
   const code = buscarCodigo.value.trim();
-  const url = "http://localhost:8000/getTracking/" + encodeURIComponent(code);
+  const url = "http://localhost:8080/getTracking/" + encodeURIComponent(code);
   try {
     const res = await fetch(url, { method: "GET" });
     const j = await res.json();
@@ -143,8 +143,8 @@ function limpiarCosas() {
   <div style="font-family: sans-serif; max-width: 720px; margin: 16px">
     <h1>Tracking de paquetes</h1>
     <p style="color: #555">
-      Demo con malas prácticas a propósito. Backend en
-      http://localhost:8000
+      Demo con microservicios. API Gateway en
+      http://localhost:8080
     </p>
 
     <p v-if="infoExtra.length > 3" style="font-size: 12px">
