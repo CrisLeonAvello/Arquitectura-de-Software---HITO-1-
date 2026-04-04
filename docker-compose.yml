@@ -1,4 +1,203 @@
 services:
+  # ============================================================
+  # API GATEWAY (Nginx)
+  # ============================================================
+  nginx:
+    build:
+      context: ./services/nginx
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - user-service
+      - package-service
+      - tracking-service
+      - backend
+    networks:
+      - microservices-network
+
+  # ============================================================
+  # USER SERVICE
+  # ============================================================
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      DB_HOST: db_users
+      DB_PORT: "5432"
+      DB_USER: tracker
+      DB_PASSWORD: tracker_secret
+      DB_NAME: users_db
+    depends_on:
+      db_users:
+        condition: service_healthy
+    networks:
+      - microservices-network
+
+  db_users:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: tracker_secret
+      POSTGRES_DB: users_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data_users:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracker -d users_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # ============================================================
+  # PACKAGE SERVICE
+  # ============================================================
+  package-service:
+    build:
+      context: ./services/package-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      DB_HOST: db_packages
+      DB_PORT: "5432"
+      DB_USER: tracker
+      DB_PASSWORD: tracker_secret
+      DB_NAME: packages_db
+    depends_on:
+      db_packages:
+        condition: service_healthy
+    networks:
+      - microservices-network
+
+  db_packages:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: tracker_secret
+      POSTGRES_DB: packages_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_data_packages:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracker -d packages_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # ============================================================
+  # TRACKING SERVICE
+  # ============================================================
+  tracking-service:
+    build:
+      context: ./services/tracking-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      DB_HOST: db_tracking
+      DB_PORT: "5432"
+      DB_USER: tracker
+      DB_PASSWORD: tracker_secret
+      DB_NAME: tracking_db
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    depends_on:
+      db_tracking:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - microservices-network
+
+  db_tracking:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: tracker_secret
+      POSTGRES_DB: tracking_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - pg_data_tracking:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracker -d tracking_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # ============================================================
+  # REDIS (Event Broker)
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # ============================================================
+  # NOTIFICATION SERVICE
+  # ============================================================
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      DB_HOST: db_notifications
+      DB_PORT: "5432"
+      DB_USER: tracker
+      DB_PASSWORD: tracker_secret
+      DB_NAME: notifications_db
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    depends_on:
+      db_notifications:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - microservices-network
+
+  db_notifications:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: tracker_secret
+      POSTGRES_DB: notifications_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - pg_data_notifications:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracker -d notifications_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # ============================================================
+  # MONOLITO (Temporal - Strangler Pattern)
+  # ============================================================
   postgres:
     image: postgres:15-alpine
     environment:
@@ -14,6 +213,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - microservices-network
 
   backend:
     build:
@@ -30,15 +231,76 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - microservices-network
 
+  # ============================================================
+  # FRONTEND
+  # ============================================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "3001:80"
     depends_on:
-      - backend
+      - nginx
+    networks:
+      - microservices-network
 
+  # ============================================================
+  # PROMETHEUS (Métricas)
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    depends_on:
+      - user-service
+      - package-service
+      - tracking-service
+      - notification-service
+      - backend
+    networks:
+      - microservices-network
+
+  # ============================================================
+  # GRAFANA (Visualización)
+  # ============================================================
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: admin
+      GF_INSTALL_PLUGINS: "grafana-piechart-panel"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./services/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - microservices-network
+
+# Volúmenes para persistencia de datos
 volumes:
+  pg_data_users:
+  pg_data_packages:
+  pg_data_tracking:
+  pg_data_notifications:
   pg_data:
+  prometheus_data:
+  grafana_data:
+
+# Red personalizada para comunicación entre servicios
+networks:
+  microservices-network:
+    driver: bridge

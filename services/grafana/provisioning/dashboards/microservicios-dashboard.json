@@ -1,0 +1,115 @@
+{
+  "dashboard": {
+    "title": "Microservicios - Monitoreo Arquitectura",
+    "description": "Dashboard de observabilidad para la arquitectura de microservicios - Hito 1",
+    "tags": ["microservices", "tracking", "performance"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Latencia Promedio (ms)",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m]) * 1000",
+            "legendFormat": "{{ job }}"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Throughput (req/s)",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{ job }}"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Tasa de Errores (%)",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "(rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m])) * 100",
+            "legendFormat": "{{ job }}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Uso de Recursos por Servicio",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024",
+            "legendFormat": "{{ job }} (MB)"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Peticiones por Servicio",
+        "type": "pie",
+        "gridPos": {
+          "x": 0,
+          "y": 16,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m])) by (job)"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Estado Servicios",
+        "type": "stat",
+        "gridPos": {
+          "x": 12,
+          "y": 16,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "up",
+            "legendFormat": "{{ job }}"
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

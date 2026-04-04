@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:8001']
+    metrics_path: '/metrics'
+
+  - job_name: 'package-service'
+    static_configs:
+      - targets: ['package-service:8002']
+    metrics_path: '/metrics'
+
+  - job_name: 'tracking-service'
+    static_configs:
+      - targets: ['tracking-service:8003']
+    metrics_path: '/metrics'
+
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:8004']
+    metrics_path: '/metrics'
+
+  - job_name: 'backend-monolito'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/metrics'
