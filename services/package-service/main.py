@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from datetime import datetime
 import httpx
@@ -69,6 +70,23 @@ async def create_package(package: PackageCreate, db: Session = Depends(get_db)):
         finally:
             httpx_client.close()
 
+        existing_package = (
+            db.query(Package)
+            .filter(
+                Package.user_id == package.user_id,
+                Package.title == package.title,
+                Package.description == package.description,
+                Package.origin == package.origin,
+                Package.destination == package.destination,
+            )
+            .first()
+        )
+        if existing_package:
+            raise HTTPException(
+                status_code=409,
+                detail="No puedes crear mas de un paquete con las mismas caracteristicas"
+            )
+
         tracking_code = generate_tracking_code()
         while db.query(Package).filter(Package.tracking_code == tracking_code).first():
             tracking_code = generate_tracking_code()
@@ -82,7 +100,14 @@ async def create_package(package: PackageCreate, db: Session = Depends(get_db)):
             destination=package.destination
         )
         db.add(new_package)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="No puedes crear mas de un paquete con las mismas caracteristicas"
+            )
         db.refresh(new_package)
 
         return {

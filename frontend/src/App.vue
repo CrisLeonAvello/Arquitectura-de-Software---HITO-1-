@@ -103,7 +103,7 @@ async function crearPaqueteCopiaFetch() {
     console.log(j);
     if (!res.ok) {
       console.log("error paquete");
-      mensajePaquete.value = "error (ver consola)";
+      mensajePaquete.value = j.detail || j.error || "error (ver consola)";
       return;
     }
     mensajePaquete.value = "creado: " + (j.tracking_code || "");

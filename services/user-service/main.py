@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import uvicorn
@@ -56,7 +57,11 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
         new_user = User(username=user.username, email=user.email)
         db.add(new_user)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=400, detail="Usuario ya existe o email ya existe")
         db.refresh(new_user)
 
         return {
@@ -65,6 +70,8 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
             "email": new_user.email,
             "message": "Usuario creado exitosamente"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

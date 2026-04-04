@@ -242,9 +242,51 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "3001:80"
     depends_on:
       - nginx
+    networks:
+      - microservices-network
+
+  # ============================================================
+  # PROMETHEUS (Métricas)
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    depends_on:
+      - user-service
+      - package-service
+      - tracking-service
+      - notification-service
+      - backend
+    networks:
+      - microservices-network
+
+  # ============================================================
+  # GRAFANA (Visualización)
+  # ============================================================
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: admin
+      GF_INSTALL_PLUGINS: "grafana-piechart-panel"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./services/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
     networks:
       - microservices-network
 
@@ -255,6 +297,8 @@ volumes:
   pg_data_tracking:
   pg_data_notifications:
   pg_data:
+  prometheus_data:
+  grafana_data:
 
 # Red personalizada para comunicación entre servicios
 networks:

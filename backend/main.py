@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import SessionLocal, engine, Base
@@ -80,18 +81,36 @@ async def createUser(request: Request):
 
     db = _open_db()
     try:
+        existing_user = (
+            db.query(User)
+            .filter((User.username == str(username)) | (User.email == str(email)))
+            .first()
+        )
+        if existing_user:
+            return JSONResponse(
+                {"detail": "Usuario ya existe o el email ya está registrado"},
+                status_code=400,
+            )
+
         u = User(username=str(username), email=str(email))
         db.add(u)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            return JSONResponse(
+                {"detail": "Usuario ya existe o el email ya está registrado"},
+                status_code=400,
+            )
         db.refresh(u)
         _notify_user_channel(str(username), f"Bienvenido al sistema de tracking, id={u.id}")
         return {"ok": True, "user_id": u.id, "username": u.username}
-    except Exception:
+    except Exception as e:
         try:
             db.rollback()
         except Exception:
             pass
-        return JSONResponse({"error": "something went wrong"}, status_code=500)
+        return JSONResponse({"error": str(e)}, status_code=500)
     finally:
         db.close()
 
